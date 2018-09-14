@@ -59,7 +59,7 @@ def random_crop(ds,crop_rsize=700, factor=1, rotation=0):
 
 def compute_dataset(image_size=448, n_files = None, downsampling_factor=1, n_samples=2):
     '''
-    Computes the dataset of length (n_files*n_samples).
+    Computes the augmented dataset of length (n_files*n_samples).
     
     Parameters
     ----------
@@ -70,7 +70,7 @@ def compute_dataset(image_size=448, n_files = None, downsampling_factor=1, n_sam
     downsampling_factor : float
         downsampling factor to lower the resolution
     n_samples : int
-        number of samples of cropped images to generate for each image in inria dataset
+        number of cropped images to generate for each image in inria dataset
     Returns
     -------
     X_train : np.ndarray

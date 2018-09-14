@@ -1,2 +1,8 @@
 AerialImageDataset/
+history/
+Results/
+save_temp/
+_pycache_/
 test_divers.py
+dataset.pickle
+test_shape.py

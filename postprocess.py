@@ -11,8 +11,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import descartes
 
-from model import FCN
+from model import FCN,FCN2
 import tqdm
+from keras.models import Model, model_from_json, load_model
+from os.path import isfile, join
+from os import listdir
 
 def tile_image(tile_size, ds, fp):
     '''
@@ -128,9 +131,10 @@ def predict_image(image,model):
     Predict one image with the model. Returns a binary array
     '''
     shape_im = image.shape
-    predicted_image = model.model.predict(image.reshape(1, shape_im[0], shape_im[1],3))
-    predicted_image = predicted_image.reshape(shape_im[0],shape_im[1]) > 0.5
-    predicted_image = predicted_image*255
+    image = image/127.5-1.0 # normalise data
+    predicted_image = model.model.predict(image.reshape(1,shape_im[0], shape_im[1],3))    
+    predicted_image = predicted_image.reshape(shape_im[0],shape_im[1])     
+    predicted_image = (predicted_image> 0.5)*255    
     return predicted_image
 
 
@@ -178,41 +182,95 @@ def predict_map(model,tile_size,ds_rgb,fp):
     print("Image binaryzed")
     return predicted_binary
 
+def predict_file(file, model_nn,
+                 images_train= "AerialImageDataset/train/images/",
+                 gt_train="AerialImageDataset/train/gt/",
+                 downsampling_factor=3,tile_size=128):
+    ds_rgb = buzz.DataSource(allow_interpolation=True)
+    rgb_path = images_train + file
+    ds_rgb.open_raster('rgb', rgb_path)
+    
+
+    fp= buzz.Footprint(
+            tl=ds_rgb.rgb.fp.tl,
+            size=ds_rgb.rgb.fp.size,
+            rsize=ds_rgb.rgb.fp.rsize/downsampling_factor,
+    ) #unsampling
+
+    predicted_binary = predict_map(model_nn,tile_size,ds_rgb,fp)
+    return predicted_binary, fp
+
+def test_pipeline(file,model_nn,images_train,gt_train,downsampling_factor,tile_size):
+    # predinction
+    predicted_binary, fp = predict_file(file,model_nn,
+                                        images_train,gt_train,
+                                        downsampling_factor,tile_size)
+    # Loading reference 
+    binary_path = gt_train + file   
+    ds_binary = buzz.DataSource(allow_interpolation=True)
+    ds_binary.open_raster('rgb', binary_path) 
+    binary = ds_binary.rgb.get_data(band=(1), fp=fp)
+    
+    # Plotting results
+    fig = plt.figure(figsize=(5. / fp.height * fp.width, 5))
+    plt.title('Predicted segmentation')
+    ax = fig.add_subplot(111)
+    ax.imshow(predicted_binary, extent=[fp.lx, fp.rx, fp.by, fp.ty])
+    plt.show()
+    
+    fig = plt.figure(figsize=(5. / fp.height * fp.width, 5))
+    plt.title('True segmentation')
+    ax = fig.add_subplot(111)
+    ax.imshow(binary, extent=[fp.lx, fp.rx, fp.by, fp.ty])
+    plt.show()
+    
+def test_save_polynoms(file):
+    # Loading reference 
+    binary_path = gt_train + file   
+    ds_binary = buzz.DataSource(allow_interpolation=True)
+    ds_binary.open_raster('rgb', binary_path) 
+    fp= buzz.Footprint(
+            tl=ds_binary.rgb.fp.tl,
+            size=ds_binary.rgb.fp.size,
+            rsize=ds_binary.rgb.fp.rsize/downsampling_factor,
+    ) #unsampling
+    binary = ds_binary.rgb.get_data(band=(1), fp=fp)
+    save_polynoms(file,binary,fp)
+    
+    
+def save_polynoms(file,binary,fp):
+    poly = fp.find_polygons(binary)
+    
+    path = 'geoJSON/'+file.split('.')[0]+'.geojson'
+    ds = buzz.DataSource(allow_interpolation=True)
+    ds.create_vector('dst', path, 'polygon', driver='GeoJSON')
+    for p in poly:
+        ds.dst.insert_data(p)
+    ds.dst.close()    
+    
+
 
 if __name__=="__main__":
     # load image
     images_train = "AerialImageDataset/train/images/"
     gt_train = "AerialImageDataset/train/gt/"
-    file= rgb_path = 'austin1.tif'
-
-    ds_rgb = buzz.DataSource(allow_interpolation=True)
-    ds_binary = buzz.DataSource(allow_interpolation=True)
-
-    rgb_path = images_train + file
-    binary_path = gt_train + file   
-    ds_rgb.open_raster('rgb', rgb_path)
-    ds_binary.open_raster('rgb', binary_path) # for testing purpose
-
-    fp= buzz.Footprint(
-            tl=ds_rgb.rgb.fp.tl,
-            size=ds_rgb.rgb.fp.size,
-            rsize=ds_rgb.rgb.fp.rsize/2,
-    ) #unsampling
     
-
-    tile_size = 224
+    file = 'austin1.tif'
+    
+    downsampling_factor=3
+    tile_size = 128
     print("Loading model")
-    model_nn = FCN().load_model()
-#    predicted_binary = predict_map(model_nn,tile_size,ds_rgb,fp)
-#    plt.imshow(predicted_binary)
-#    plt.show()
+    model_nn = FCN2(tile_size).load_model()
     
-    print("Finding polygons")
-    #test for the binary image
-    binary = ds_binary.rgb.get_data(band=(1), fp=fp)
-    plt.imshow(binary)
-    plt.show()
-#    poly = fp.find_polygons(binary)
+    # Testing the results for one file
+#    test_pipeline(file,model_nn,images_train,gt_train,downsampling_factor,tile_size)
+#    test_save_polynoms(file)
+    files = [f for f in listdir(images_train) if isfile(join(images_train, f))]
+    for i in range(len(files)):
+        print("Processing file number "+str(i)+"/"+str(len(files))+"...")
+        predicted_binary, fp = predict_file(files[i],model_nn,
+                                        images_train,gt_train,
+                                        downsampling_factor,tile_size)
+        save_polynoms(files[i],predicted_binary,fp)
+
     
-    # todo : save poly
-#    ds_binary.create_vector('targets', 'test.geojson', 'polygon', driver='GeoJSON')
