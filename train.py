@@ -35,7 +35,7 @@ def train(model_nn, dataset,
     print("Setting model parameters...")
     
     adam_optimizer = Adam(lr=learning_rate, beta_1=beta_1, beta_2=beta_2)
-    miou_metric = MeanIoU(2)
+#    miou_metric = MeanIoU(2)
     model_nn.model.compile(loss= 'binary_crossentropy',
                            optimizer=adam_optimizer)
     if load_weights:

@@ -7,6 +7,7 @@ Created on Wed Sep 12 21:29:24 2018
 import json
 from keras.models import Model, model_from_json, load_model
 from keras.layers import Input, Conv2D, Conv2DTranspose, MaxPooling2D,concatenate
+from keras.utils import plot_model
 
 from keras.applications.vgg16 import VGG16
 #from keras.applications.resnet50 import resnet50
@@ -159,8 +160,8 @@ class FCN2(Model_NN):
     def __init__(self,input_size):
         super(FCN2,self).__init__()
         self.name = "fcn2"
-        self.model = self.fcn2()
         self.input_size = input_size
+        self.model = self.fcn2()
     
     def fcn2(self):
         # =============================================================================
@@ -214,5 +215,6 @@ if __name__=="__main__":
 #    test_setting_weight()
 #    model = FCN()
 #    model.summary()
-    model = FCN2()
+    model = FCN2(128)
     model.model.summary()
+    plot_model(model.model, to_file='Results/model_display.png')

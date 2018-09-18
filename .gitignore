@@ -2,7 +2,9 @@ AerialImageDataset/
 history/
 Results/
 save_temp/
-_pycache_/
+__pycache__/
 test_divers.py
 dataset.pickle
 test_shape.py
+test_network.py
+test.py

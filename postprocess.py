@@ -116,6 +116,17 @@ def untile_and_predict(rgb_array,tiles,fp,model):
 
 
 def show_polygons(rgb,fp,poly_list):
+    '''
+    Display polygons from a polygon list in a array linked to the adapted footprint
+    Parameters
+    ----------
+    rgb : np.ndarray
+        image in rgb format (n,d,3)
+    fp : footprint
+        footprint linked to the array
+    poly_list : list of shapely.geometry.polygons objects
+        list of polygons to display
+    '''
     # Show image with matplotlib and descartes
     fig = plt.figure(figsize=(5. / fp.height * fp.width, 5))
     plt.title('Roof boundary')
@@ -129,6 +140,12 @@ def show_polygons(rgb,fp,poly_list):
 def predict_image(image,model):
     '''
     Predict one image with the model. Returns a binary array
+    Parameters
+    ----------
+    image : np.ndarray
+        rgb input array of the (n,d,3)
+    model : Model object
+        trained model for the prediction of image (tile_size * tile_size)
     '''
     shape_im = image.shape
     image = image/127.5-1.0 # normalise data
@@ -139,6 +156,9 @@ def predict_image(image,model):
 
 
 def test_tile_function(ds_rgb, tiles):
+    '''
+    Test tile function to see how it reacts with corners 
+    '''
     # test size of tiles
     print("Size tile in meters : " +str(tiles[0,0].size))
     print("Size tile in pixels : " +str(tiles[0,0].rsize))
@@ -184,8 +204,23 @@ def predict_map(model,tile_size,ds_rgb,fp):
 
 def predict_file(file, model_nn,
                  images_train= "AerialImageDataset/train/images/",
-                 gt_train="AerialImageDataset/train/gt/",
                  downsampling_factor=3,tile_size=128):
+    '''
+    Predict binaryzed array and adapted footprint from a file_name
+    Parameters
+    ----------
+    file : string
+        file name (with extension)
+    model_nn : Model object
+        trained model for the prediction of image (tile_size * tile_size)
+    images_train : string
+        folder name for whole input images
+    downsampling_factor : int
+        downsampling factor (to lower resolution)
+    tile_size : int
+        size of a tile (in pixel) i.e. size of the input images 
+        for the neural network
+    '''
     ds_rgb = buzz.DataSource(allow_interpolation=True)
     rgb_path = images_train + file
     ds_rgb.open_raster('rgb', rgb_path)
@@ -201,9 +236,13 @@ def predict_file(file, model_nn,
     return predicted_binary, fp
 
 def test_pipeline(file,model_nn,images_train,gt_train,downsampling_factor,tile_size):
+    '''
+    Test the whole pipeline from a file name to a binaryzed array and compare 
+    it to the referenced binary image
+    '''
     # predinction
     predicted_binary, fp = predict_file(file,model_nn,
-                                        images_train,gt_train,
+                                        images_train,
                                         downsampling_factor,tile_size)
     # Loading reference 
     binary_path = gt_train + file   
@@ -225,6 +264,9 @@ def test_pipeline(file,model_nn,images_train,gt_train,downsampling_factor,tile_s
     plt.show()
     
 def test_save_polynoms(file):
+    '''
+    test polynom identification of saving for one file
+    '''
     # Loading reference 
     binary_path = gt_train + file   
     ds_binary = buzz.DataSource(allow_interpolation=True)
@@ -239,6 +281,17 @@ def test_save_polynoms(file):
     
     
 def save_polynoms(file,binary,fp):
+    '''
+    Find polynoms in a binary array and save them at the geojson format
+    Parameters
+    ----------
+    file : string
+        file name (with extension)
+    binary : np.ndarray
+        array that contains the whole binaryzed image
+    fp : footprint
+        footprint linked to the binary array
+    '''
     poly = fp.find_polygons(binary)
     
     path = 'geoJSON/'+file.split('.')[0]+'.geojson'
@@ -248,6 +301,56 @@ def save_polynoms(file,binary,fp):
         ds.dst.insert_data(p)
     ds.dst.close()    
     
+def compute_files(model_nn,images_train,downsampling_factor,tile_size):
+    '''
+    Compute polynoms for each files in images_train folder and save them in
+    geojson format.
+    Parameters
+    ----------
+    model : Model object
+        trained model for the prediction of image (tile_size * tile_size)
+    images_traian : string
+        folder name for whole input images
+    downsampling_factor : int
+        downsampling factor (to lower resolution)
+    tile_size : int
+        size of a tile (in pixel) i.e. size of the input images 
+        for the neural network
+    '''
+    files = [f for f in listdir(images_train) if isfile(join(images_train, f))]
+    for i in range(len(files)):
+        print("Processing file number "+str(i)+"/"+str(len(files))+"...")
+        predicted_binary, fp = predict_file(files[i],model_nn,
+                                        images_train,
+                                        downsampling_factor,tile_size)
+        save_polynoms(files[i],predicted_binary,fp)
+
+def display_results(file,gt_train = "AerialImageDataset/train/gt/",
+                    images_train = "AerialImageDataset/train/images/",
+                   polygons_path = "geoJSON/",downsampling_factor=1):
+    geojson_file = polygons_path+file.split('.')[0]+'.geojson'
+    ds = buzz.DataSource(allow_interpolation=True)
+    ds.open_raster('rgb', images_train+file)
+    ds.open_vector('roofs',geojson_file,driver='geoJSON')
+    
+    
+    # Build a low resolution Footprint to perform quicker calculations 
+    fp = buzz.Footprint(
+        tl=ds.rgb.fp.tl,
+        size=ds.rgb.fp.size,
+        rsize=ds.rgb.fp.rsize // downsampling_factor,
+    )
+    
+    polygons = ds.roofs.iter_data(None) 
+    rgb = ds.rgb.get_data(band=(1, 2, 3), fp=fp).astype('uint8')
+    fig = plt.figure(figsize=(5. / fp.height * fp.width, 5))
+    plt.title('Roof boundary')
+    ax = fig.add_subplot(111)
+    ax.imshow(rgb, extent=[fp.lx, fp.rx, fp.by, fp.ty])
+    for polygon_roof in polygons:
+        ax.add_patch(descartes.PolygonPatch(polygon_roof, fill=False, ec='#ff0000', lw=3, ls='--'))
+    plt.show()
+    
 
 
 if __name__=="__main__":
@@ -255,7 +358,7 @@ if __name__=="__main__":
     images_train = "AerialImageDataset/train/images/"
     gt_train = "AerialImageDataset/train/gt/"
     
-    file = 'austin1.tif'
+    file = 'vienna5.tif'
     
     downsampling_factor=3
     tile_size = 128
@@ -265,12 +368,11 @@ if __name__=="__main__":
     # Testing the results for one file
 #    test_pipeline(file,model_nn,images_train,gt_train,downsampling_factor,tile_size)
 #    test_save_polynoms(file)
-    files = [f for f in listdir(images_train) if isfile(join(images_train, f))]
-    for i in range(len(files)):
-        print("Processing file number "+str(i)+"/"+str(len(files))+"...")
-        predicted_binary, fp = predict_file(files[i],model_nn,
-                                        images_train,gt_train,
-                                        downsampling_factor,tile_size)
-        save_polynoms(files[i],predicted_binary,fp)
+    
+    # Compute polynoms for each files
+#    compute_files(model_nn,images_train,downsampling_factor,tile_size)
+    display_results(file)
+    
+    
 
     
