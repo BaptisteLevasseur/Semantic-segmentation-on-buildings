@@ -33,11 +33,16 @@ Here is the history of the loss function (binary crossentropy):
 The results are shown for the first train file of the dataset:
 
 The original image:
+
 ![image](Results/austin1.png)
+
 The reference binaryzed image:
-![ref bin](Results/true_semgentation.png)
+
+![ref bin](Results/true_segmentation.png)
+
 The predicted binaryzed image:
-[predicted bin](Results/predicted_segmentation.png)
+
+![predicted bin](Results/predicted_segmentation.png)
 
 To eveluate the accuracy of the model, with use the intersection over union metric.
 The results for the different towns displayed in the following table:
