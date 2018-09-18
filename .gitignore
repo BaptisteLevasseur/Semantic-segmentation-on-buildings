@@ -1,6 +1,5 @@
 AerialImageDataset/
 history/
-Results/
 save_temp/
 __pycache__/
 test_divers.py
