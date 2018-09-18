@@ -13,7 +13,7 @@ The results are saved and store at the geoJSON format.
 The solution implemented is inspired by the [TernausNet](https://arxiv.org/abs/1801.05746) based on an autoencoder that reuses the features learned during the encoding part for the decoding part.
 The used architecture was :
 
-![](Results/model_display.png =250x)
+[](Results/model_display.png)
 
 All the convolutional layers except the last one (sigmoid) are using ReLu activation function. The size of the filters are (3,3) and with use 2 strides for the deconvolution.
 
