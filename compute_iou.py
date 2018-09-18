@@ -70,8 +70,8 @@ def display_stats():
     print(names)
     print(mean)
     print(var)
-    print(mini)
     print(maxi)
+    print(mini)
     print(np.argmax(results))
 images_train = "AerialImageDataset/train/images/"
 gt_train = "AerialImageDataset/train/gt/"
