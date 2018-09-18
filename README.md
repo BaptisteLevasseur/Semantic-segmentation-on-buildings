@@ -13,7 +13,7 @@ The results are saved and store at the geoJSON format.
 The solution implemented is inspired by the [TernausNet](https://arxiv.org/abs/1801.05746) based on an autoencoder that reuses the features learned during the encoding part for the decoding part.
 The used architecture was :
 
-[](Results/model_display.png)
+![](Results/model_display.png)
 
 All the convolutional layers except the last one (sigmoid) are using ReLu activation function. The size of the filters are (3,3) and with use 2 strides for the deconvolution.
 
@@ -28,16 +28,16 @@ The results are polygons saved at the geoJSON format (same name of the original 
 Due to limited computational performances, we only chose a dataset of 180x`n_samples` images with `downsampling_factor=3`. The batch number is fixed at 40 and the number of epochs at 50.
 Here is the history of the loss function (binary crossentropy):
 
-[](Results/history_loss.png)
+![loss](Results/history_loss.png)
 
 The results are shown for the first train file of the dataset:
 
 The original image:
-[](Results/austin1.png)
+![image](Results/austin1.png)
 The reference binaryzed image:
-[](Results/true_semgentation.png)
+![ref bin](Results/true_semgentation.png)
 The predicted binaryzed image:
-[](Results/predicted_segmentation.png)
+[predicted bin](Results/predicted_segmentation.png)
 
 To eveluate the accuracy of the model, with use the intersection over union metric.
 The results for the different towns displayed in the following table:
