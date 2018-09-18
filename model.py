@@ -10,6 +10,9 @@ from keras.layers import Input, Conv2D, Conv2DTranspose, MaxPooling2D,concatenat
 from keras.utils import plot_model
 
 from keras.applications.vgg16 import VGG16
+
+import os
+os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin/'
 #from keras.applications.resnet50 import resnet50
 
 
@@ -217,4 +220,4 @@ if __name__=="__main__":
 #    model.summary()
     model = FCN2(128)
     model.model.summary()
-    plot_model(model.model, to_file='Results/model_display.png')
+    plot_model(model.model, to_file='Results/model_display.png', show_shapes=True, show_layer_names=True,rankdir='TB')
